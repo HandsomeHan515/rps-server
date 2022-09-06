@@ -20,8 +20,6 @@ app.all('*', function (req, res) {
     req.next()
 })
 
-
-
 app.get('/room/list', (req, res) => {
     res.json({
         success: true,
@@ -41,18 +39,17 @@ app.post('/room/addRoom', (req, res) => {
 
 const actionMap = {}
 io.on('connection', socket => {
-    console.log('a user connected');
+    console.log('a user connected', socket.id);
 
     socket.on('join', ({ room, user }) => {
-
         const clientsInRoom = io.sockets.adapter.rooms.get(room)
         // 当前房间里的人数
         const numClients = clientsInRoom ? clientsInRoom.size : 0
 
-        if (numClients === 0) { // 这个房间里面没有人
-            socket.join(room)
+        if (numClients === 0) { // no player in this room
+            socket.join(room) // first player
         } else if (numClients === 1) {
-            socket.join(room)
+            socket.join(room) // second play
             // 给该房间所有人发消息，开始游戏
             io.in(room).emit('start play', room)
         } else {
@@ -60,24 +57,25 @@ io.on('connection', socket => {
         }
 
         console.log('rooms', io.sockets.adapter.rooms.get(room));
-
     })
 
     socket.on('leave', ({ room, user }) => {
         socket.leave(room)
+        // 清空 actionMap
+        delete actionMap[room]
         // 除本连接外，给某个房间内所有人发消息
         socket.to(room).emit('cancel play', room)
-        console.log('leave room', io.sockets.adapter.rooms.get(room));
+        console.log('leave room', io.sockets.adapter.rooms.get(room), actionMap);
     })
 
     socket.on('select', ({ type, room, user }) => {
-        console.log('select', actionMap);
         if (actionMap[room]) {
             actionMap[room][user] = type
         } else {
             actionMap[room] = {}
+            actionMap[room][user] = type
         }
-        console.log('server action type', actionMap);
+        console.log('server select', actionMap);
         if (Object.keys(actionMap[room]).length > 1) {
             // 两个人都完成选项后，向客户端发送结果
             console.log('complete play');
