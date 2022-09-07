@@ -41,10 +41,10 @@ const actionMap = {}
 io.on('connection', socket => {
     console.log('a user connected', socket.id);
 
-    socket.on('join', ({ room, user }) => {
+    socket.on('join', room => {
         actionMap[room] = {}
         const clientsInRoom = io.sockets.adapter.rooms.get(room)
-        // 当前房间里的人数
+        // current room client number
         const numClients = clientsInRoom ? clientsInRoom.size : 0
 
         if (numClients === 0) { // no player in this room
@@ -60,13 +60,20 @@ io.on('connection', socket => {
         console.log('rooms', io.sockets.adapter.rooms.get(room));
     })
 
-    socket.on('leave', ({ room, user }) => {
-        socket.leave(room)
-        // 清空 actionMap
-        actionMap[room] = {}
-        // 除本连接外，给某个房间内所有人发消息
-        socket.to(room).emit('cancel play', room)
-        console.log('leave room', io.sockets.adapter.rooms.get(room), actionMap);
+    socket.on('leave', room => {
+        const clientsInRoom = io.sockets.adapter.rooms.get(room);
+        // current room client number
+        const numClients = clientsInRoom ? clientsInRoom.size : 0
+        if (numClients === 2) {
+            // client is full
+        } else {
+            socket.leave(room)
+            // 当前房间 数据清空
+            actionMap[room] = {}
+            // 除本连接外，给某个房间内所有人发消息
+            socket.to(room).emit('cancel play', room)
+            console.log('leave room', io.sockets.adapter.rooms.get(room), actionMap);
+        }
     })
 
     socket.on('select', ({ type, room, user }) => {
