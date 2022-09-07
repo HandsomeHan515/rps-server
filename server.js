@@ -42,6 +42,7 @@ io.on('connection', socket => {
     console.log('a user connected', socket.id);
 
     socket.on('join', ({ room, user }) => {
+        actionMap[room] = {}
         const clientsInRoom = io.sockets.adapter.rooms.get(room)
         // 当前房间里的人数
         const numClients = clientsInRoom ? clientsInRoom.size : 0
@@ -62,19 +63,14 @@ io.on('connection', socket => {
     socket.on('leave', ({ room, user }) => {
         socket.leave(room)
         // 清空 actionMap
-        delete actionMap[room]
+        actionMap[room] = {}
         // 除本连接外，给某个房间内所有人发消息
         socket.to(room).emit('cancel play', room)
         console.log('leave room', io.sockets.adapter.rooms.get(room), actionMap);
     })
 
     socket.on('select', ({ type, room, user }) => {
-        if (actionMap[room]) {
-            actionMap[room][user] = type
-        } else {
-            actionMap[room] = {}
-            actionMap[room][user] = type
-        }
+        actionMap[room][user] = type
         console.log('server select', actionMap);
         if (Object.keys(actionMap[room]).length > 1) {
             // 两个人都完成选项后，向客户端发送结果
