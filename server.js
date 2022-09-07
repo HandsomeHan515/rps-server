@@ -61,13 +61,13 @@ io.on('connection', socket => {
     })
 
     socket.on('leave', room => {
+        socket.leave(room)
         const clientsInRoom = io.sockets.adapter.rooms.get(room);
         // current room client number
         const numClients = clientsInRoom ? clientsInRoom.size : 0
         if (numClients === 2) {
             // client is full
         } else {
-            socket.leave(room)
             // 当前房间 数据清空
             actionMap[room] = {}
             // 除本连接外，给某个房间内所有人发消息
