@@ -6,6 +6,7 @@ import RoomController from '../controllers/RoomController';
 export const router = express.Router();
 
 router.post('/', (req: Request, res: Response, next: NextFunction) => {
+    console.log('Rech POST /room');
     if (!req.body.name) {
         next(new MissingParamenter('name is required to create room'));
     } else {
@@ -19,12 +20,14 @@ router.post('/', (req: Request, res: Response, next: NextFunction) => {
 });
 
 router.get('/', (req: Request, res: Response) => {
+    console.log('Rech GET /room');
     RoomController.getRoomList().then((rooms) => {
         res.json(rooms);
     });
 });
 
 router.delete('/:roomId', (req: Request, res: Response, next: NextFunction) => {
+    console.log('Rech DELETE /room/:roomId');
     const roomId = req.params.roomId;
     if (!roomId) {
         next(new MissingParamenter('roomId is required to create room'));

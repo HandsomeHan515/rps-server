@@ -1,8 +1,9 @@
 import path from 'path';
 import http from 'http';
-import express, { Express, NextFunction, Request, Response } from 'express';
+import express, { Express, Request, Response } from 'express';
 import { Server, Socket } from 'socket.io';
 import dotEnv from 'dotenv';
+import cors from 'cors';
 import * as OpenApiValidator from 'express-openapi-validator';
 import { router as RoomRoutes } from './routes/RoomApi';
 import GameListener from './listeners/GameListener';
@@ -11,6 +12,10 @@ dotEnv.config({ path: path.resolve(__dirname, './config/.env') });
 const app: Express = express();
 const port = process.env.PORT;
 
+app.get('/', (req: Request, res: Response) => {
+    res.send('Express + TS + OpenApi + Socket.io Server');
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -18,21 +23,11 @@ app.use(
     OpenApiValidator.middleware({
         apiSpec: './openapi.yaml',
         validateRequests: true, // (default)
-        validateResponses: true, // false by default
+        validateResponses: false, // false by default
     }),
 );
 
-app.all('*', function (req: Request, res: Response, next: NextFunction) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
-    res.header('Content-Type', 'application/json;charset=utf-8');
-    next();
-});
-
-app.get('/', (req: Request, res: Response) => {
-    res.send('Express + TS server');
-});
+app.use(cors());
 
 app.use('/room', RoomRoutes);
 
@@ -49,6 +44,6 @@ io.on('disconnect', (socket: Socket) => {
     GameListener(io, socket);
 });
 
-app.listen(port, () => {
+server.listen(port, () => {
     console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
 });
