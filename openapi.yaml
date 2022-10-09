@@ -1,0 +1,130 @@
+openapi: 3.0.0
+info:
+    title: rps-server
+    version: 1.0.0
+    license:
+        name: ISC
+    description: |-
+        Specification JSONs: [v2](/api-spec/v2), [v3](/api-spec/v3).
+        Back-end for rps
+paths:
+    /room:
+        get:
+            summary: get room list
+            operationId: getRoomList
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/RoomRes"
+                '204':
+                    description: No Content
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+        post:
+            summary: create room
+            operationId: createRoom
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/RoomReq'
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/RoomRes'
+                '204':
+                    description: No Content
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+    /room/{roomId}:
+        delete:
+            summary: delete room
+            operationId: RemoveRoom
+            parameters:
+                - name: roomId
+                  in: path
+                  required: true
+                  schema:
+                      type: string
+            responses:
+                '204':
+                    description: Deleted
+                '400':
+                    $ref: '#/components/responses/BadRequest'
+                '401':
+                    $ref: '#/components/responses/Unauthorized'
+                '404':
+                    $ref: '#/components/responses/NotFound'
+components:
+    responses:
+        BadRequest:
+            description: Bad request
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ApiResponse'
+        Unauthorized:
+            description: Unauthorized
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ApiResponse'
+        Forbidden:
+            description: Forbidden
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ApiResponse'
+        NotFound:
+            description: Not Found
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ApiResponse'
+    schemas:
+        ApiResponse:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    format: int32
+                type:
+                    type: string
+                message:
+                    type: string
+                errorCode:
+                    $ref: '#/components/schemas/ErrorCode'
+        ErrorCode:
+            type: string
+            enum:
+                - MISSING_PARAMETER
+                - MISSING_TOKEN
+                - INVALID_TOKEN
+                - ACTION_NOT_ALLOWED
+                - NOT_FOUND
+                - SERVER_ERROR
+                - UNEXPECTED_ERROR
+        RoomReq:
+            type: object
+            required:
+                - name
+            properties:
+                name:
+                    type: string
+        RoomRes:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                createdTime:
+                    type: string
