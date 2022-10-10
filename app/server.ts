@@ -12,6 +12,13 @@ dotEnv.config({ path: path.resolve(__dirname, './config/.env') });
 const app: Express = express();
 const port = process.env.PORT;
 
+const corsOptions = {
+    origin: '*',
+    credentials: true,
+    methods: ['get', 'post', 'put', 'delete', 'patch', 'options'],
+};
+app.use(cors());
+
 app.get('/', (req: Request, res: Response) => {
     res.send('Express + TS + OpenApi + Socket.io Server');
 });
@@ -27,20 +34,13 @@ app.use(
     }),
 );
 
-app.use(
-    cors({
-        origin: 'https://rps-game-dev.herokuapp.com',
-        credentials: true,
-    }),
-);
-
 app.use('/room', RoomRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: 'https://rps-game-dev.herokuapp.com',
-        credentials: true,
+        ...corsOptions,
+        allowedHeaders: ['my-custom-header'],
     },
 });
 
