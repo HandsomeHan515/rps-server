@@ -27,12 +27,22 @@ app.use(
     }),
 );
 
-app.use(cors());
+app.use(
+    cors({
+        origin: 'https://rps-game-dev.herokuapp.com',
+        credentials: true,
+    }),
+);
 
 app.use('/room', RoomRoutes);
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: 'https://rps-game-dev.herokuapp.com',
+        credentials: true,
+    },
+});
 
 io.on('connection', (socket: Socket) => {
     console.log('User with socketId %s connected', socket.id);
