@@ -2,49 +2,62 @@ import { Server, Socket } from 'socket.io';
 import { GamePlayerList } from '../modules/GamePlayerListClass';
 
 const PlayerList = GamePlayerList.gamePlayerList;
+const MAX_NUM_IN_ROOM = 2;
 
 const GameListener = (io: Server, socket: Socket) => {
-    socket.on('game:join', (room: string, user: string) => {
-        const clientsInRoom = io.sockets.adapter.rooms.get(room);
+    const getRoomClients = (roomId: string) => {
+        const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
         // current room client number
-        const numClients = clientsInRoom ? clientsInRoom.size : 0;
+        return clientsInRoom ? clientsInRoom.size : 0;
+    };
 
-        if (numClients === 0) {
-            // no player in this room
-            PlayerList[room][socket.id] = { userId: user };
-            socket.join(room); // first player
-        } else if (numClients === 1) {
-            PlayerList[room][socket.id] = { userId: user };
-            socket.join(room); // second play
-            io.in(room).emit('game:startPlay', room);
+    const joinGame = (roomId: string, userId: string) => {
+        if (getRoomClients(roomId) === MAX_NUM_IN_ROOM) {
+            socket.emit('game:full', roomId);
         } else {
-            socket.emit('game:roomIsFull', room);
-        }
-    });
-
-    socket.on('game:leave', (room: string) => {
-        socket.leave(room);
-        const clientsInRoom = io.sockets.adapter.rooms.get(room);
-        // current room client number
-        const numClients = clientsInRoom ? clientsInRoom.size : 0;
-        if (numClients === 2) {
-            // client is full
-        } else {
-            if (PlayerList[room][socket.id]) {
-                delete PlayerList[room][socket.id];
+            socket.join(roomId);
+            if (PlayerList[roomId]) {
+                PlayerList[roomId][userId] = { userId };
+            } else {
+                PlayerList[roomId] = {};
+                PlayerList[roomId][userId] = { userId };
             }
-            socket.to(room).emit('game:cancelPlay', room);
-            console.log('leave room', PlayerList);
+            if (getRoomClients(roomId) === MAX_NUM_IN_ROOM) {
+                io.to(roomId).emit('game:startPlay', roomId);
+            }
         }
-    });
+    };
 
-    socket.on('game:select', ({ type, room }) => {
-        PlayerList[room][socket.id].gameType = type;
-        if (Object.keys(PlayerList[room]).length > 1) {
-            // 两个人都完成选项后，向客户端发送结果
-            io.in(room).emit('game:completePlay', { room, users: PlayerList[room] });
+    const sendPicking = (roomId: string, userId: string, type: string) => {
+        if (PlayerList[roomId][userId]) {
+            PlayerList[roomId][userId].gameType = type;
+            const completPlay = Object.values(PlayerList[roomId]).every(({ gameType }) => !!gameType);
+            if (completPlay) {
+                io.to(roomId).emit('game:completePlay', Object.values(PlayerList[roomId]));
+            }
         }
-    });
+    };
+
+    const leaveGame = (userId: string) => {
+        try {
+            const userRoomId = Object.keys(PlayerList).find((roomId) => Object.prototype.hasOwnProperty.call(PlayerList[roomId], userId));
+            if (userRoomId) {
+                delete PlayerList[userRoomId][userId];
+                // clear all players picking
+                Object.keys(PlayerList[userRoomId]).forEach((userId) => {
+                    delete PlayerList[userRoomId][userId].gameType;
+                });
+                socket.leave(userRoomId);
+                socket.to(userRoomId).emit('game:cancelPlay', userId);
+            }
+        } catch (error: unknown) {
+            console.error(error);
+        }
+    };
+
+    socket.on('game:join', joinGame);
+    socket.on('game:sendPicking', sendPicking);
+    socket.on('game:leave', leaveGame);
 };
 
 export default GameListener;
